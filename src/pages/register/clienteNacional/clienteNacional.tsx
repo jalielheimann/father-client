@@ -14,12 +14,15 @@ import PasswordID from '@/components/forms/password';
 import { Step, ClienteNacionalFormData } from './types'; // Importando do types.ts
 import companyService from '@/services/companyService';
 import contactService from '@/services/contactService';
+import { useNavigate } from 'react-router-dom'; // Importamos o useNavigate do react-router-dom
+
 
 /**
  * Componente principal para o registro de cliente nacional.
  * Gerencia as etapas do processo de registro, começando pelo CnpjInfo.
  */
 const ClienteNacional: React.FC = () => {
+  const navigate = useNavigate(); // Inicializamos o navigate
   // Estado para rastrear a etapa atual do formulário.
   const [currentStep, setCurrentStep] = useState<Step>(Step.CnpjInfo);
 
@@ -165,28 +168,25 @@ const ClienteNacional: React.FC = () => {
         }
         break;
 
-      case Step.FatherID:
-        console.log('[ClienteNacional] Dados de FatherID coletados. Fluxo concluído.');
-        if (data.desejaCriarFatherID) {
-          // Implementar lógica para criar a conta FatherID, se necessário
-          console.log('[ClienteNacional] Criando conta FatherID...');
-          // Exemplo: await fatherIDService.createFatherID(updatedFormData);
-        } else {
-          // Usuário optou por não criar FatherID, proceder para enviar dados
+        case Step.FatherID:
+          console.log('[ClienteNacional] Dados de FatherID coletados. Fluxo concluído.');
           console.log('[ClienteNacional] Enviando dados da empresa e contatos...');
-          await enviarDados(updatedFormData); // Usando os dados atualizados
+          await enviarDados(updatedFormData); // Enviamos os dados para a API
           console.log('[ClienteNacional] Fluxo de registro concluído.');
-          setMensagem('Registro realizado com sucesso!');
-          // Implementar redirecionamento ou exibição de mensagem de sucesso
-        }
-        break;
-
-      default:
-        console.warn(`[ClienteNacional] Etapa desconhecida: ${currentStep}`);
-        setCurrentStep(Step.CnpjInfo);
-        break;
-    }
-  };
+  
+          if (data.desejaCriarFatherID) {
+            console.log('[ClienteNacional] Criando conta FatherID...');
+            // Implementar lógica para criar a conta FatherID, se necessário
+            navigate('/password'); // Redirecionamos para /password
+          } else {
+            setMensagem('Registro realizado com sucesso!');
+            navigate('/success'); // Redirecionamos para /success
+          }
+          break;
+  
+        // ... outros cases ...
+      }
+    };
 
   /**
    * Função para voltar para a etapa anterior no fluxo.
@@ -245,7 +245,8 @@ const ClienteNacional: React.FC = () => {
         {currentStep === Step.ContactData && <ContactData onNext={handleNext} email={formData.email || ''} />}
         {currentStep === Step.ContactDataPlus && <ContactDataPlus onNext={handleNext} />}
         {currentStep === Step.MoreContact && <MoreContact onNext={handleNext} />}
-        {currentStep === Step.FatherID && <FatherID onNext={handleNext} />} {/* Renderizando FatherID */}
+        {currentStep === Step.FatherID && (
+          <FatherID onNext={handleNext} email={formData.email || ''} />   )}
       </section>
 
       {/* Mensagem de Sucesso ou Erro */}
