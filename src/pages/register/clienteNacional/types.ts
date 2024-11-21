@@ -8,6 +8,7 @@ export enum Step {
     ContactDataPlus = 'ContactDataPlus',
     MoreContact = 'MoreContact',
     FatherID = 'FatherID',
+    PasswordID = 'PasswordID', // Adicionamos este novo step
   }
   
   export interface Contact {
@@ -36,6 +37,7 @@ export enum Step {
     segmento?: string;
     subsegmento?: string;
     desejaCriarFatherID?: boolean;
+    senha?: string; // Propriedade adicionada
     // Adicione mais campos conforme necessário para etapas futuras
   }
   

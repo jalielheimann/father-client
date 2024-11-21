@@ -1,3 +1,4 @@
+
 import PasswordID from '@/components/forms/password';
 import Home from '@/pages/home/home';
 import Register from '@/pages/register/register';
@@ -11,8 +12,8 @@ export const AppRouter = () => (
         <Routes>
             <Route path='/' element={<Home />} />
            <Route path='/register' element={<Register />} />
-           <Route path='/sucess' element={<Sucess />} />
-           <Route path='/password' element={<PasswordID />} />
+           <Route path='/success' element={<Sucess />} />
+        <Route path='/password' element={<PasswordID />}></Route>
         </Routes>
     </Router>
 );

@@ -1,21 +1,21 @@
 // src/pages/register/clienteNacional/index.tsx
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // Importamos o useNavigate do react-router-dom
 import CnpjInfo from './components/cnpjInfo';
 import EmailInfo from '@/components/forms/emailInfo';
 import ContactData from '@/components/forms/contactData';
 import ContactDataPlus from '@/components/forms/contactDataPlus';
 import MoreContact from '@/components/forms/moreContact';
 import NacionalData from './components/nacionalData';
-import FatherID from '@/components/forms/fatherID'; // Importando o novo componente FatherID
+import FatherID from '@/components/forms/fatherID';
+import PasswordID from '@/components/forms/password'; // Certifique-se de que o caminho está correto
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-import PasswordID from '@/components/forms/password';
 import { Step, ClienteNacionalFormData } from './types'; // Importando do types.ts
 import companyService from '@/services/companyService';
 import contactService from '@/services/contactService';
-import { useNavigate } from 'react-router-dom'; // Importamos o useNavigate do react-router-dom
-
+import passwordService from '@/services/passwordService';
 
 /**
  * Componente principal para o registro de cliente nacional.
@@ -56,9 +56,10 @@ const ClienteNacional: React.FC = () => {
         website: '', // Não coletado, definir conforme necessário
         State: '', // Não coletado, definir conforme necessário
         City: '', // Não coletado, definir conforme necessário
-        Address: dados.rua && dados.bairro && dados.cep && dados.numero
-          ? `${dados.rua}, ${dados.numero} - ${dados.bairro}, CEP ${dados.cep}`
-          : '',
+        Address:
+          dados.rua && dados.bairro && dados.cep && dados.numero
+            ? `${dados.rua}, ${dados.numero} - ${dados.bairro}, CEP ${dados.cep}`
+            : '',
         type: 'nacional',
       };
 
@@ -87,11 +88,9 @@ const ClienteNacional: React.FC = () => {
 
       console.log('Dados enviados com sucesso.');
       setMensagem('Registro realizado com sucesso!');
-      // Implementar redirecionamento ou exibição de mensagem de sucesso aqui
     } catch (error) {
       console.error('Erro ao enviar os dados:', error);
       setMensagem('Erro ao realizar o registro. Por favor, tente novamente.');
-      // Implementar tratamento de erro, exibir mensagem para o usuário
     }
   };
 
@@ -158,35 +157,47 @@ const ClienteNacional: React.FC = () => {
       case Step.MoreContact:
         console.log('[ClienteNacional] Decisão sobre adicionar mais contatos:', data.addMoreContacts);
         if (data.addMoreContacts) {
-          // Sempre direciona para ContactDataPlus ao adicionar mais contatos
           console.log('[ClienteNacional] Adicionando mais contatos via ContactDataPlus.');
           setCurrentStep(Step.ContactDataPlus);
         } else {
-          // Direciona para a nova etapa FatherID
           console.log('[ClienteNacional] Redirecionando para FatherID.');
           setCurrentStep(Step.FatherID);
         }
         break;
 
-        case Step.FatherID:
-          console.log('[ClienteNacional] Dados de FatherID coletados. Fluxo concluído.');
-          console.log('[ClienteNacional] Enviando dados da empresa e contatos...');
-          await enviarDados(updatedFormData); // Enviamos os dados para a API
-          console.log('[ClienteNacional] Fluxo de registro concluído.');
-  
-          if (data.desejaCriarFatherID) {
-            console.log('[ClienteNacional] Criando conta FatherID...');
-            // Implementar lógica para criar a conta FatherID, se necessário
-            navigate('/password'); // Redirecionamos para /password
-          } else {
-            setMensagem('Registro realizado com sucesso!');
-            navigate('/success'); // Redirecionamos para /success
-          }
-          break;
-  
-        // ... outros cases ...
-      }
-    };
+      case Step.FatherID:
+        console.log('[ClienteNacional] Dados de FatherID coletados. Fluxo concluído.');
+        console.log('[ClienteNacional] Enviando dados da empresa e contatos...');
+        await enviarDados(updatedFormData);
+        console.log('[ClienteNacional] Fluxo de registro concluído.');
+
+        if (data.desejaCriarFatherID) {
+          console.log('[ClienteNacional] Redirecionando para PasswordID.');
+          setCurrentStep(Step.PasswordID);
+        } else {
+          setMensagem('Registro realizado com sucesso!');
+          navigate('/success');
+        }
+        break;
+
+      case Step.PasswordID:
+        console.log('[ClienteNacional] Senha recebida. Enviando para o passwordService...');
+        // Chamamos o passwordService com a senha e o email
+        await passwordService.createPassword({
+          email: formData.email || '',
+          senha: data.senha || '',
+        });
+        console.log('[ClienteNacional] Senha criada com sucesso.');
+        setMensagem('Conta criada com sucesso!');
+        navigate('/success');
+        break;
+
+      default:
+        console.warn(`[ClienteNacional] Etapa desconhecida: ${currentStep}`);
+        setCurrentStep(Step.CnpjInfo);
+        break;
+    }
+  };
 
   /**
    * Função para voltar para a etapa anterior no fluxo.
@@ -209,7 +220,6 @@ const ClienteNacional: React.FC = () => {
         break;
       case Step.MoreContact:
         if (formData.contatos.length > 0) {
-          // Se o último contato adicionado foi via ContactDataPlus, voltar para ContactDataPlus
           const lastContact = formData.contatos[formData.contatos.length - 1];
           if (lastContact.email) {
             setCurrentStep(Step.ContactDataPlus);
@@ -223,11 +233,11 @@ const ClienteNacional: React.FC = () => {
       case Step.FatherID:
         setCurrentStep(Step.MoreContact);
         break;
-      case Step.NacionalData:
-        setCurrentStep(Step.CnpjInfo);
+      case Step.PasswordID:
+        setCurrentStep(Step.FatherID);
         break;
       default:
-        console.warn('[ClienteNacional] Não há etapas anteriores para voltar.');
+        console.warn(`[ClienteNacional] Não há etapas anteriores para voltar a partir de: ${currentStep}`);
         break;
     }
   };
@@ -242,16 +252,28 @@ const ClienteNacional: React.FC = () => {
         {currentStep === Step.CnpjInfo && <CnpjInfo onNext={handleNext} />}
         {currentStep === Step.NacionalData && <NacionalData onNext={handleNext} />}
         {currentStep === Step.EmailInfo && <EmailInfo onNext={handleNext} />}
-        {currentStep === Step.ContactData && <ContactData onNext={handleNext} email={formData.email || ''} />}
+        {currentStep === Step.ContactData && (
+          <ContactData onNext={handleNext} email={formData.email || ''} />
+        )}
         {currentStep === Step.ContactDataPlus && <ContactDataPlus onNext={handleNext} />}
         {currentStep === Step.MoreContact && <MoreContact onNext={handleNext} />}
         {currentStep === Step.FatherID && (
-          <FatherID onNext={handleNext} email={formData.email || ''} />   )}
+          <FatherID onNext={handleNext} email={formData.email || ''} />
+        )}
+      {currentStep === Step.PasswordID && (
+  <PasswordID onNext={handleNext} email={formData.email || ''} />
+)}
+
+
       </section>
 
       {/* Mensagem de Sucesso ou Erro */}
       {mensagem && (
-        <div className={`mt-4 p-4 rounded ${mensagem.includes('sucesso') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+        <div
+          className={`mt-4 p-4 rounded ${
+            mensagem.includes('sucesso') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}
+        >
           {mensagem}
         </div>
       )}
@@ -263,7 +285,7 @@ const ClienteNacional: React.FC = () => {
           variant='outline'
           className='mt-4 flex items-center justify-center'
         >
-          <ArrowLeft className="mr-2" /> Voltar
+          <ArrowLeft className='mr-2' /> Voltar
         </Button>
       )}
     </div>

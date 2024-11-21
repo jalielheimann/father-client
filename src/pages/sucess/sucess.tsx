@@ -1,7 +1,7 @@
 export function Sucess() {
     return(
         <main>
-            Sucesso, cadastro concluido.
+            <h1>Sucesso, cadastro concluido.</h1>
         </main>
     )
 }
